@@ -10,6 +10,7 @@
   "exports": {
     ".": "./dist/index.js",
     "./loader": "./dist/loader.js",
+    "./plugins": "./dist/plugins.js",
     "./mdx-components-fallback": "./dist/mdx-components-fallback.js"
   },
   "files": [

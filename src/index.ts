@@ -16,8 +16,9 @@ const LOADER = 'satteri-nextjs/loader';
 // to the app's `mdx-components` file (Next's `mdx-components.tsx` convention).
 const PROVIDER_SOURCE = 'next-mdx-import-source-file';
 
-// No-op provider used when the app has no `mdx-components` file.
-const FALLBACK_PROVIDER = fileURLToPath(new URL('./mdx-components-fallback.js', import.meta.url));
+// No-op provider used when the app has no `mdx-components` file. Computed lazily
+// (see resolveProvider) so importing this module never runs `fileURLToPath` —
+// a top-level call breaks if a bundler ever inlines this entry into app code.
 const FALLBACK_SPECIFIER = 'satteri-nextjs/mdx-components-fallback';
 
 /**
@@ -41,7 +42,8 @@ function resolveProvider(): ProviderAlias {
       }
     }
   }
-  return { webpack: FALLBACK_PROVIDER, turbopack: FALLBACK_SPECIFIER };
+  const fallback = fileURLToPath(new URL('./mdx-components-fallback.js', import.meta.url));
+  return { webpack: fallback, turbopack: FALLBACK_SPECIFIER };
 }
 
 /** satteri options that survive JSON serialization (safe for Turbopack). */
@@ -149,5 +151,7 @@ export default function withSatteri(options: WithSatteriOptions = {}) {
 export { compileMdx } from './loader.js';
 export { collectHeadings } from './headings.js';
 export { parseFrontmatter } from './frontmatter.js';
+export { externalLinks } from './plugins.js';
 export type { CompileOptions };
 export type { TocEntry } from './headings.js';
+export type { ExternalLinksOptions } from './plugins.js';

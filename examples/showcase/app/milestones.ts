@@ -42,7 +42,8 @@ export const milestones: Milestone[] = [
     num: 5,
     title: 'Plugin compat / escape hatch',
     desc: 'Adapt a subset of remark/rehype, or document the mdast route.',
-    done: false,
+    done: true,
+    href: '/milestone-5',
   },
   {
     num: 6,
