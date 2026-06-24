@@ -1,0 +1,32 @@
+---
+title: Milestone 3 — Components provider
+status: live
+---
+
+[← all milestones](/)
+
+# Milestone 3 — Components provider
+
+This `.mdx` file uses **custom components with no per-page wiring** — no
+`components={{ ... }}` prop anywhere. They come from the root
+`mdx-components.tsx`, which `withSatteri` aliases to satteri's
+`providerImportSource`.
+
+<Note>This callout is a custom `<Note>` component supplied entirely by the provider.</Note>
+
+The counter below is also provided — and it's an interactive **client** component
+rendered inside an otherwise-static server-rendered page:
+
+<Counter initial={10} />
+
+## How it wires up
+
+1. `withSatteri` sets `providerImportSource: 'next-mdx-import-source-file'`.
+2. It aliases that specifier to your `mdx-components.tsx` (with a no-op fallback
+   so the file stays optional).
+3. satteri's output calls `useMDXComponents()` and merges the returned map with
+   any `props.components`.
+
+> Base Markdown (headings, lists, this quote) still collapses into static HTML
+> via `optimizeStatic` — only real components like `<Note>` / `<Counter>` remain
+> JSX, so overriding plain tags would mean relaxing `optimizeStatic`.

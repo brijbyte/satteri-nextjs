@@ -28,7 +28,8 @@ export const milestones: Milestone[] = [
     num: 3,
     title: 'Components provider',
     desc: 'useMDXComponents / mdx-components.tsx convention.',
-    done: false,
+    done: true,
+    href: '/milestone-3',
   },
   {
     num: 4,

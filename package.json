@@ -9,7 +9,8 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
-    "./loader": "./dist/loader.js"
+    "./loader": "./dist/loader.js",
+    "./mdx-components-fallback": "./dist/mdx-components-fallback.js"
   },
   "files": [
     "dist"

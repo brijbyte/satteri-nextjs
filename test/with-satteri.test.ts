@@ -25,7 +25,10 @@ describe('withSatteri (config wrapper)', () => {
     const rule: any = rules['*.mdx'];
     expect(rule.loaders[0].loader).toBe('satteri-nextjs/loader');
     expect(rule.as).toBe('*.js');
-    expect(rule.loaders[0].options).toEqual({ features: { gfm: true } });
+    expect(rule.loaders[0].options).toEqual({
+      features: { gfm: true },
+      providerImportSource: 'next-mdx-import-source-file',
+    });
   });
 
   it('pushes a webpack rule with the loader after defaultLoaders.babel', () => {
@@ -54,6 +57,28 @@ describe('withSatteri (config wrapper)', () => {
     expect(rule.loaders[0].options.mdastPlugins).toBeUndefined();
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
+  });
+
+  it('enables the component provider by default and aliases it both ways', () => {
+    const cfg = withSatteri()({});
+    // Loader is told to import useMDXComponents from the magic specifier.
+    const tbRule: any = cfg.turbopack!.rules!['*.mdx'];
+    expect(tbRule.loaders[0].options.providerImportSource).toBe('next-mdx-import-source-file');
+    // No mdx-components file in the test cwd → both point at the no-op fallback,
+    // but in the bundler-appropriate form (Turbopack: specifier, webpack: path).
+    const tbAlias = (cfg.turbopack as any).resolveAlias['next-mdx-import-source-file'];
+    expect(tbAlias).toBe('satteri-nextjs/mdx-components-fallback');
+    const config = applyWebpack(cfg, { module: { rules: [] }, resolve: { alias: {} } } as any);
+    expect(config.resolve.alias['next-mdx-import-source-file']).toMatch(/mdx-components-fallback\.js$/);
+  });
+
+  it('does not own the alias when a custom providerImportSource is given', () => {
+    const cfg = withSatteri({ providerImportSource: '@mdx-js/react' })({});
+    expect((cfg.turbopack as any).resolveAlias).toBeUndefined();
+    const tbRule: any = cfg.turbopack!.rules!['*.mdx'];
+    expect(tbRule.loaders[0].options.providerImportSource).toBe('@mdx-js/react');
+    const config = applyWebpack(cfg, { module: { rules: [] }, resolve: { alias: {} } } as any);
+    expect(config.resolve.alias['next-mdx-import-source-file']).toBeUndefined();
   });
 
   it('preserves an existing nextConfig.webpack hook', () => {

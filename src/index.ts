@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';
 import type { CompileOptions } from './loader.js';
 
@@ -8,6 +11,38 @@ export interface WithSatteriOptions extends CompileOptions {
 
 // Bare specifier resolved via this package's `exports["./loader"]` map.
 const LOADER = 'satteri-nextjs/loader';
+
+// Magic specifier satteri's output imports `useMDXComponents` from; we alias it
+// to the app's `mdx-components` file (Next's `mdx-components.tsx` convention).
+const PROVIDER_SOURCE = 'next-mdx-import-source-file';
+
+// No-op provider used when the app has no `mdx-components` file.
+const FALLBACK_PROVIDER = fileURLToPath(new URL('./mdx-components-fallback.js', import.meta.url));
+const FALLBACK_SPECIFIER = 'satteri-nextjs/mdx-components-fallback';
+
+/**
+ * Alias targets for the provider, per bundler: webpack wants an absolute path;
+ * Turbopack treats string values as project-root-relative (or bare module
+ * specifiers), so absolute paths are mis-joined there.
+ */
+interface ProviderAlias {
+  webpack: string;
+  turbopack: string;
+}
+
+/** Find the app's `mdx-components` file (root or `src/`), else the fallback. */
+function resolveProvider(): ProviderAlias {
+  const cwd = process.cwd();
+  for (const dir of ['', 'src']) {
+    for (const ext of ['tsx', 'ts', 'jsx', 'js', 'mjs']) {
+      const candidate = join(cwd, dir, `mdx-components.${ext}`);
+      if (existsSync(candidate)) {
+        return { webpack: candidate, turbopack: './' + relative(cwd, candidate) };
+      }
+    }
+  }
+  return { webpack: FALLBACK_PROVIDER, turbopack: FALLBACK_SPECIFIER };
+}
 
 /** satteri options that survive JSON serialization (safe for Turbopack). */
 function serializableOptions(options: CompileOptions): Record<string, unknown> {
@@ -27,11 +62,14 @@ function serializableOptions(options: CompileOptions): Record<string, unknown> {
  *
  * Mirrors `@next/mdx`'s `nextMdx()` ergonomics: returns a function you apply to
  * your `nextConfig`. Wires the loader into both the webpack rule and the
- * Turbopack `turbopack.rules`, and extends `pageExtensions` with `md`/`mdx`.
+ * Turbopack `turbopack.rules`, extends `pageExtensions` with `md`/`mdx`, and
+ * enables the `mdx-components.tsx` component provider convention.
  *
- * Caveat: Turbopack loader options must be JSON-serializable, so `mdastPlugins`
- * / `hastPlugins` apply under **webpack only**. Everything else (features,
- * optimizeStatic, providerImportSource, ...) works under both.
+ * Caveats:
+ * - Turbopack loader options must be JSON-serializable, so `mdastPlugins`
+ *   /`hastPlugins` apply under **webpack only**. Everything else works under both.
+ * - The provider is on by default (`providerImportSource`); pass your own
+ *   `providerImportSource` to override, in which case you wire its alias yourself.
  */
 export default function withSatteri(options: WithSatteriOptions = {}) {
   const { extension = /\.mdx?$/, ...compileOptions } = options;
@@ -43,6 +81,12 @@ export default function withSatteri(options: WithSatteriOptions = {}) {
         'under webpack only — Turbopack will compile without them. See CONTEXT.md.',
     );
   }
+
+  // Default the provider to our managed specifier; only then do we own the alias.
+  const provider = compileOptions.providerImportSource ?? PROVIDER_SOURCE;
+  const ownsProvider = provider === PROVIDER_SOURCE;
+  const loaderOptions: CompileOptions = { ...compileOptions, providerImportSource: provider };
+  const providerAlias = ownsProvider ? resolveProvider() : undefined;
 
   // Turbopack globs derived from the extension (best-effort; defaults to both).
   const turbopackGlobs = [
@@ -59,7 +103,7 @@ export default function withSatteri(options: WithSatteriOptions = {}) {
     ];
 
     const turbopackRule = {
-      loaders: [{ loader: LOADER, options: serializableOptions(compileOptions) }],
+      loaders: [{ loader: LOADER, options: serializableOptions(loaderOptions) }],
       as: '*.js',
     };
     const turbopackRules: Record<string, typeof turbopackRule> = {};
@@ -72,6 +116,9 @@ export default function withSatteri(options: WithSatteriOptions = {}) {
       // satisfy Next's stricter JSONValue typing on Turbopack loader options.
       turbopack: {
         ...nextConfig.turbopack,
+        resolveAlias: providerAlias
+          ? { ...nextConfig.turbopack?.resolveAlias, [PROVIDER_SOURCE]: providerAlias.turbopack }
+          : nextConfig.turbopack?.resolveAlias,
         rules: {
           ...nextConfig.turbopack?.rules,
           ...turbopackRules,
@@ -82,8 +129,13 @@ export default function withSatteri(options: WithSatteriOptions = {}) {
         // Next's default (swc) loader handles RSC/'use client'/module transforms.
         config.module.rules.push({
           test: extension,
-          use: [context.defaultLoaders.babel, { loader: LOADER, options: compileOptions }],
+          use: [context.defaultLoaders.babel, { loader: LOADER, options: loaderOptions }],
         });
+        if (providerAlias) {
+          config.resolve ??= {};
+          config.resolve.alias ??= {};
+          config.resolve.alias[PROVIDER_SOURCE] = providerAlias.webpack;
+        }
         return typeof nextConfig.webpack === 'function'
           ? nextConfig.webpack(config, context)
           : config;
