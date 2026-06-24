@@ -9,6 +9,8 @@ import type {
   OptimizeStaticConfig,
   MdxToJsResult,
 } from 'satteri';
+import { collectHeadings } from './headings.js';
+import { parseFrontmatter } from './frontmatter.js';
 
 /** React-style static optimization: collapse static subtrees to one
  * `dangerouslySetInnerHTML` div instead of per-node `jsx()` calls. */
@@ -35,6 +37,12 @@ export interface CompileOptions {
   jsxImportSource?: string;
   /** Emit development output (jsxDEV, source info). Defaults from build mode. */
   development?: boolean;
+  /** Slug headings + export a `toc` array (`{ depth, value, id }[]`) from the
+   * compiled module. Default `true`. Set `false` to skip heading ids + TOC. */
+  toc?: boolean;
+  /** Parse YAML frontmatter and export it as `frontmatter` from the compiled
+   * module. Default `true`. Set `false` to skip the export. */
+  frontmatter?: boolean;
 }
 
 // Lazy native import so the Rust binary isn't pulled in unless the loader runs.
@@ -47,8 +55,9 @@ async function loadSatteri() {
 /**
  * Compile Markdown/MDX source to a React-compatible ESM module.
  *
- * Returns the full satteri result so callers (the loader, `withSatteri`) can
- * also reach `frontmatter` and the plugin `data` bag (milestone 4).
+ * Returns the full satteri result. When `toc`/`frontmatter` are enabled
+ * (default), the returned `code` also carries `export const toc`/`frontmatter`
+ * so pages can `import { frontmatter, toc }` from the file (milestone 4).
  */
 export async function compileMdx(
   source: string,
@@ -56,9 +65,17 @@ export async function compileMdx(
   fileURL?: URL,
 ): Promise<MdxToJsResult> {
   const { mdxToJs } = await loadSatteri();
+  const wantToc = options.toc !== false;
+  const wantFrontmatter = options.frontmatter !== false;
+
+  // Inject our heading collector last so user hast plugins run first.
+  const hastPlugins = wantToc
+    ? [...(options.hastPlugins ?? []), collectHeadings()]
+    : options.hastPlugins;
+
   const result = await mdxToJs(source, {
     mdastPlugins: options.mdastPlugins,
-    hastPlugins: options.hastPlugins,
+    hastPlugins,
     features: options.features,
     optimizeStatic:
       options.optimizeStatic === false
@@ -69,7 +86,20 @@ export async function compileMdx(
     development: options.development,
     fileURL,
   });
-  return result;
+
+  // Append named exports so the module surfaces frontmatter + TOC alongside the
+  // default `MDXContent` export. satteri emits an ESM program, so this is valid.
+  let suffix = '';
+  if (wantFrontmatter) {
+    const fm = parseFrontmatter(result.frontmatter);
+    suffix += `\nexport const frontmatter = ${JSON.stringify(fm)};`;
+  }
+  if (wantToc) {
+    const toc = (result.data.toc as unknown) ?? [];
+    suffix += `\nexport const toc = ${JSON.stringify(toc)};`;
+  }
+
+  return suffix ? { ...result, code: result.code + suffix } : result;
 }
 
 // Minimal webpack loader context surface we rely on.

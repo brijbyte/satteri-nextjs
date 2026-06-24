@@ -1,0 +1,34 @@
+---
+title: Surfacing TOC & frontmatter
+description: How satteri-nextjs exports frontmatter and a table of contents.
+author: Brijesh Bittu
+tags: [satteri, nextjs, mdx]
+---
+
+The text of this document lives in `app/milestone-4/content.mdx`. It is **not** a
+route — `page.tsx` imports it as a module and reads its named exports.
+
+## Why this is needed
+
+satteri returns frontmatter as a **raw** block (`{ kind, value }`) and never
+parses it, and its `data` bag is empty unless a plugin fills it. So there is no
+TOC and no usable frontmatter out of the box.
+
+## What the loader adds
+
+The loader injects a built-in heading plugin that slugs each heading and collects
+a `toc`, then appends `export const frontmatter` / `export const toc` to the
+compiled module.
+
+### Heading ids
+
+Every heading gets a stable `id`, so the TOC links below jump to it.
+
+### Deduped slugs
+
+Repeated headings get `-1`, `-2` suffixes.
+
+## Putting it together
+
+`page.tsx` renders the frontmatter as metadata, builds a TOC `<nav>` from the
+`toc` export, and renders this content — all from one import.

@@ -46,13 +46,15 @@ function resolveProvider(): ProviderAlias {
 
 /** satteri options that survive JSON serialization (safe for Turbopack). */
 function serializableOptions(options: CompileOptions): Record<string, unknown> {
-  const { features, optimizeStatic, providerImportSource, jsxImportSource, development } = options;
+  const { features, optimizeStatic, providerImportSource, jsxImportSource, development, toc, frontmatter } = options;
   const out: Record<string, unknown> = {};
   if (features !== undefined) out.features = features;
   if (optimizeStatic !== undefined) out.optimizeStatic = optimizeStatic;
   if (providerImportSource !== undefined) out.providerImportSource = providerImportSource;
   if (jsxImportSource !== undefined) out.jsxImportSource = jsxImportSource;
   if (development !== undefined) out.development = development;
+  if (toc !== undefined) out.toc = toc;
+  if (frontmatter !== undefined) out.frontmatter = frontmatter;
   return out;
 }
 
@@ -145,4 +147,7 @@ export default function withSatteri(options: WithSatteriOptions = {}) {
 }
 
 export { compileMdx } from './loader.js';
+export { collectHeadings } from './headings.js';
+export { parseFrontmatter } from './frontmatter.js';
 export type { CompileOptions };
+export type { TocEntry } from './headings.js';

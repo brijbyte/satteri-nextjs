@@ -35,7 +35,8 @@ export const milestones: Milestone[] = [
     num: 4,
     title: 'TOC / frontmatter export',
     desc: 'Surface result.data (headings, frontmatter) from the module.',
-    done: false,
+    done: true,
+    href: '/milestone-4',
   },
   {
     num: 5,

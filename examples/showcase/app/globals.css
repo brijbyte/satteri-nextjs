@@ -95,3 +95,28 @@ pre {
 .rendered h1 { font-size: 1.4rem; }
 
 .back { display: inline-block; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+/* Milestone 4: frontmatter metadata + table of contents */
+dl.frontmatter {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.3rem 1rem;
+  margin: 1rem 0;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  font-size: 0.88rem;
+}
+dl.frontmatter dt { color: var(--muted); }
+dl.frontmatter dd { margin: 0; }
+nav.toc {
+  margin: 1.5rem 0;
+  padding: 0.9rem 1.1rem;
+  border-left: 3px solid var(--accent);
+  background: rgba(88, 166, 255, 0.06);
+  font-size: 0.9rem;
+}
+nav.toc strong { text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.78rem; color: var(--muted); }
+nav.toc ul { list-style: none; margin: 0.5rem 0 0; padding: 0; }
+nav.toc li { padding: 0.1rem 0; }

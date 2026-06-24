@@ -23,7 +23,8 @@ describe('compileMdx (loader core)', () => {
     const { code } = await compileMdx(SRC);
     // Static markdown becomes one dangerouslySetInnerHTML div, not per-node jsx.
     expect(code).toContain('dangerouslySetInnerHTML');
-    expect(code).toContain('<h1>Heading One</h1>');
+    // Headings are slugged by the built-in TOC plugin (milestone 4).
+    expect(code).toContain('<h1 id=\\"heading-one\\">Heading One</h1>');
   });
 
   it('leaves JSX components to be resolved from props.components', async () => {
@@ -45,5 +46,47 @@ describe('compileMdx (loader core)', () => {
   it('returns code synchronously-resolvable when no async plugins are used', async () => {
     const { code } = await compileMdx('# Just markdown');
     expect(code).toContain('export default MDXContent');
+  });
+
+  describe('milestone 4: frontmatter + toc exports', () => {
+    const DOC = `---
+title: Hello
+tags: [a, b]
+---
+
+# Big Title
+
+## Section One
+
+## Section One
+`;
+
+    it('exports parsed YAML frontmatter as an object', async () => {
+      const { code } = await compileMdx(DOC);
+      expect(code).toContain('export const frontmatter = {"title":"Hello","tags":["a","b"]};');
+    });
+
+    it('exports a toc with depth, value and slugged ids (deduped)', async () => {
+      const { code, data } = await compileMdx(DOC);
+      expect(data.toc).toEqual([
+        { depth: 1, value: 'Big Title', id: 'big-title' },
+        { depth: 2, value: 'Section One', id: 'section-one' },
+        { depth: 2, value: 'Section One', id: 'section-one-1' },
+      ]);
+      expect(code).toContain('export const toc = [');
+    });
+
+    it('exports an empty frontmatter object when none present', async () => {
+      const { code } = await compileMdx('# No frontmatter');
+      expect(code).toContain('export const frontmatter = {};');
+    });
+
+    it('can disable both exports', async () => {
+      const { code } = await compileMdx(DOC, { toc: false, frontmatter: false });
+      expect(code).not.toContain('export const frontmatter');
+      expect(code).not.toContain('export const toc');
+      // With toc off, headings are not slugged.
+      expect(code).toContain('<h1>Big Title</h1>');
+    });
   });
 });
