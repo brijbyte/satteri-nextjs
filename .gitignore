@@ -6,3 +6,5 @@ dist
 # Next.js (examples)
 .next
 next-env.d.ts
+/LEARNING.md
+/CONTEXT.md
