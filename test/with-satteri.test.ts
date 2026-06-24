@@ -1,0 +1,65 @@
+import { describe, it, expect, vi } from 'vitest';
+import withSatteri from '../src/index.js';
+
+function applyWebpack(nextConfig: any, base = { module: { rules: [] as any[] } }) {
+  const context = { defaultLoaders: { babel: 'next-swc-loader' } } as any;
+  const result = nextConfig.webpack(base, context);
+  return result;
+}
+
+describe('withSatteri (config wrapper)', () => {
+  it('extends pageExtensions with md/mdx without dropping existing ones', () => {
+    const cfg = withSatteri()({ pageExtensions: ['tsx'] });
+    expect(cfg.pageExtensions).toEqual(['tsx', 'md', 'mdx']);
+  });
+
+  it('defaults pageExtensions when none provided', () => {
+    const cfg = withSatteri()({});
+    expect(cfg.pageExtensions).toEqual(['tsx', 'ts', 'jsx', 'js', 'md', 'mdx']);
+  });
+
+  it('registers Turbopack rules for *.md and *.mdx pointing at the loader', () => {
+    const cfg = withSatteri({ features: { gfm: true } })({});
+    const rules = cfg.turbopack!.rules!;
+    expect(Object.keys(rules)).toEqual(expect.arrayContaining(['*.md', '*.mdx']));
+    const rule: any = rules['*.mdx'];
+    expect(rule.loaders[0].loader).toBe('satteri-nextjs/loader');
+    expect(rule.as).toBe('*.js');
+    expect(rule.loaders[0].options).toEqual({ features: { gfm: true } });
+  });
+
+  it('pushes a webpack rule with the loader after defaultLoaders.babel', () => {
+    const cfg = withSatteri()({});
+    const config = applyWebpack(cfg);
+    const rule = config.module.rules.at(-1);
+    expect(rule.test.test('page.mdx')).toBe(true);
+    expect(rule.test.test('page.md')).toBe(true);
+    expect(rule.test.test('page.tsx')).toBe(false);
+    expect(rule.use[0]).toBe('next-swc-loader');
+    expect(rule.use[1].loader).toBe('satteri-nextjs/loader');
+  });
+
+  it('passes full options (including plugins) to the webpack loader', () => {
+    const plugin = { heading() {} };
+    const cfg = withSatteri({ mdastPlugins: [plugin] })({});
+    const config = applyWebpack(cfg);
+    const rule = config.module.rules.at(-1);
+    expect(rule.use[1].options.mdastPlugins).toEqual([plugin]);
+  });
+
+  it('strips non-serializable plugins from Turbopack options and warns', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const cfg = withSatteri({ mdastPlugins: [{ heading() {} }] })({});
+    const rule: any = cfg.turbopack!.rules!['*.mdx'];
+    expect(rule.loaders[0].options.mdastPlugins).toBeUndefined();
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('preserves an existing nextConfig.webpack hook', () => {
+    const original = vi.fn((c: any) => c);
+    const cfg = withSatteri()({ webpack: original } as any);
+    applyWebpack(cfg);
+    expect(original).toHaveBeenCalledOnce();
+  });
+});

@@ -21,7 +21,8 @@ export const milestones: Milestone[] = [
     num: 2,
     title: 'withSatteri config wrapper',
     desc: 'Wire the loader into Next so real .mdx pages render.',
-    done: false,
+    done: true,
+    href: '/milestone-2',
   },
   {
     num: 3,

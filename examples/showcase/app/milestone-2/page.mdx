@@ -1,0 +1,44 @@
+---
+title: Milestone 2 — withSatteri
+status: live
+---
+
+[← all milestones](/)
+
+# Milestone 2 — withSatteri config wrapper
+
+**This whole page is a real `.mdx` file** (`app/milestone-2/page.mdx`), compiled
+by the satteri loader because `next.config.mjs` is wrapped with `withSatteri(...)`.
+No `evaluate` shim, no per-page wiring — Next routed and rendered it directly.
+
+## What the wrapper did
+
+- Extended `pageExtensions` so `.md`/`.mdx` count as pages.
+- Registered the loader for both **Turbopack** and **webpack**.
+- Compiled this file's Markdown to a React module at build time.
+
+## GFM still works
+
+| Feature      | Supported |
+| ------------ | :-------: |
+| Tables       |     ✅     |
+| Task lists   |     ✅     |
+| Strikethrough|     ✅     |
+
+- [x] parse in Rust
+- [x] compile to a React module
+- [ ] custom components (that's milestone 3)
+
+~~Old MDX toolchain~~ → satteri.
+
+> The static parts of this page collapse into a single
+> `dangerouslySetInnerHTML` node; only real components would stay JSX.
+
+```ts
+// next.config.mjs
+import withSatteri from 'satteri-nextjs';
+export default withSatteri({ features: { gfm: true } })({});
+```
+
+Custom JSX components aren't wired yet — supplying them via the
+`mdx-components.tsx` convention is **milestone 3**.
