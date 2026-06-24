@@ -1,0 +1,105 @@
+name: Publish
+
+# Publishes the package when the version in package.json changes on main.
+# Bump `version` + add a CHANGELOG.md section, push to main, and this workflow
+# tags v<version>, publishes to npm (with provenance), and cuts a GitHub release
+# from the matching changelog section. Re-runs with an unchanged version are
+# no-ops (the tag already exists).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write # create/push tags and the GitHub release
+  id-token: write # npm provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm-publish # scope the trusted publisher (and any approvals) here
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Resolve version and tag
+        id: meta
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if tag already exists
+        id: guard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Exact-match ref lookup via the API (404 when absent) — avoids a full
+          # history/tag fetch in checkout. `git/ref/` is exact; `git/refs/` isn't.
+          if gh api "repos/${{ github.repository }}/git/ref/tags/${{ steps.meta.outputs.tag }}" >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Tag ${{ steps.meta.outputs.tag }} already exists — nothing to publish."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        if: steps.guard.outputs.publish == 'true'
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        if: steps.guard.outputs.publish == 'true'
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+          cache: pnpm
+
+      # Trusted publishing (OIDC) requires npm CLI >= 11.5.1; Node 22 ships 10.x.
+      - name: Upgrade npm for trusted publishing
+        if: steps.guard.outputs.publish == 'true'
+        run: npm install -g npm@latest
+
+      - name: Install
+        if: steps.guard.outputs.publish == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        if: steps.guard.outputs.publish == 'true'
+        run: pnpm build
+
+      - name: Test
+        if: steps.guard.outputs.publish == 'true'
+        run: pnpm test
+
+      - name: Extract changelog section (fails if missing)
+        if: steps.guard.outputs.publish == 'true'
+        run: node scripts/extract-changelog.mjs "${{ steps.meta.outputs.version }}" > RELEASE_NOTES.md
+
+      # Trusted publishing: npm authenticates via the OIDC token (id-token: write)
+      # and mints provenance automatically — no NPM_TOKEN needed. Configure this
+      # repo + workflow (+ the npm-publish environment) as a trusted publisher on
+      # npmjs.com for the package first.
+      - name: Publish to npm (trusted publishing)
+        if: steps.guard.outputs.publish == 'true'
+        run: npm publish
+
+      - name: Create and push git tag
+        if: steps.guard.outputs.publish == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.meta.outputs.tag }}" -m "${{ steps.meta.outputs.tag }}"
+          git push origin "${{ steps.meta.outputs.tag }}"
+
+      - name: Create GitHub release
+        if: steps.guard.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.meta.outputs.tag }}" \
+            --title "${{ steps.meta.outputs.tag }}" \
+            --notes-file RELEASE_NOTES.md \
+            --verify-tag

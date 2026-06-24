@@ -1,2 +1,16 @@
 packages:
   - examples/*
+
+# pnpm 11 supply-chain policy: reject dependencies published less than this many
+# minutes ago (delay-protection against freshly-published, possibly-compromised
+# releases). 1440 = 1 day.
+minimumReleaseAge: 1440
+# Allowlist for packages we knowingly need at the bleeding edge (vite 8 / vitest 4
+# pull these, published the same day). They bypass the age window above.
+minimumReleaseAgeExclude:
+  - rolldown
+  - '@rolldown/*'
+  - '@napi-rs/wasm-runtime'
+
+allowBuilds:
+  sharp: false

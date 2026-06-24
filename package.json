@@ -1,20 +1,40 @@
 {
+  "$schema": "https://json.schemastore.org/package",
   "name": "satteri-nextjs",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Next.js integration for satteri — Rust-native Markdown/MDX, compiled to React/RSC modules.",
   "type": "module",
   "license": "MIT",
-  "author": "Brijesh Bittu",
+  "packageManager": "pnpm@11.9.0",
+  "author": {
+    "name": "Brijbyte",
+    "url": "https://github.com/brijbyte"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brijbyte/satteri-nextjs.git"
+  },
+  "homepage": "https://github.com/brijbyte/satteri-nextjs#readme",
+  "bugs": {
+    "url": "https://github.com/brijbyte/satteri-nextjs/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
+    "./package.json": "./package.json",
     ".": "./dist/index.js",
     "./loader": "./dist/loader.js",
     "./plugins": "./dist/plugins.js",
     "./mdx-components-fallback": "./dist/mdx-components-fallback.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "README.md"
   ],
   "scripts": {
     "build": "tsc -b",
