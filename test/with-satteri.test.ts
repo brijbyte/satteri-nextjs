@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import withSatteri from '../src/index.js';
+import withSatteri, { isLegacyTurbopackVersion } from '../src/index.js';
 
 function applyWebpack(nextConfig: any, base = { module: { rules: [] as any[] } }) {
   const context = { defaultLoaders: { babel: 'next-swc-loader' } } as any;
@@ -79,6 +79,19 @@ describe('withSatteri (config wrapper)', () => {
     expect(tbRule.loaders[0].options.providerImportSource).toBe('@mdx-js/react');
     const config = applyWebpack(cfg, { module: { rules: [] }, resolve: { alias: {} } } as any);
     expect(config.resolve.alias['next-mdx-import-source-file']).toBeUndefined();
+  });
+
+  it('picks the Turbopack config key by Next version (experimental.turbo <15.3)', () => {
+    // 13.0.0–15.2.x → legacy experimental.turbo
+    expect(isLegacyTurbopackVersion('14.2.0')).toBe(true);
+    expect(isLegacyTurbopackVersion('15.0.0')).toBe(true);
+    expect(isLegacyTurbopackVersion('15.2.9')).toBe(true);
+    // 15.3.0+ → top-level turbopack
+    expect(isLegacyTurbopackVersion('15.3.0')).toBe(false);
+    expect(isLegacyTurbopackVersion('16.2.9')).toBe(false);
+    // Unknown/unparseable → modern key (safe default)
+    expect(isLegacyTurbopackVersion(undefined)).toBe(false);
+    expect(isLegacyTurbopackVersion('canary')).toBe(false);
   });
 
   it('preserves an existing nextConfig.webpack hook', () => {

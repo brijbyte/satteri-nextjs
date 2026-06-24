@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';
@@ -61,6 +62,30 @@ function serializableOptions(options: CompileOptions): Record<string, unknown> {
 }
 
 /**
+ * Next moved the Turbopack config key from `experimental.turbo` (13.0.0–15.2.x)
+ * to the top-level `turbopack` (15.3.0+). We support `next >=14`, so the version
+ * decides where our rules/alias must go — otherwise they land on a key Next
+ * ignores and silently do nothing. Returns `false` (modern key) for an unknown
+ * or unparseable version.
+ */
+export function isLegacyTurbopackVersion(version: string | undefined): boolean {
+  if (!version) return false;
+  const [major, minor] = version.split('.', 2).map((n) => Number.parseInt(n, 10));
+  if (Number.isNaN(major) || Number.isNaN(minor)) return false;
+  return major < 15 || (major === 15 && minor < 3);
+}
+
+/** Read the installed Next version and decide the Turbopack config key. */
+function usesLegacyTurbopackKey(): boolean {
+  try {
+    const require = createRequire(import.meta.url);
+    return isLegacyTurbopackVersion(require('next/package.json').version);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Wrap a Next.js config so `.md`/`.mdx` files are compiled with satteri
  * (Rust-native parse/compile) instead of `@mdx-js/loader`.
  *
@@ -113,21 +138,35 @@ export default function withSatteri(options: WithSatteriOptions = {}) {
     const turbopackRules: Record<string, typeof turbopackRule> = {};
     for (const glob of globs) turbopackRules[glob] = turbopackRule;
 
+    // Next <15.3 reads Turbopack config from `experimental.turbo`; 15.3+ from the
+    // top-level `turbopack`. Merge with whichever the user already populated.
+    const legacy = usesLegacyTurbopackKey();
+    const existingTurbopack = legacy
+      ? (nextConfig.experimental as Record<string, NextConfig['turbopack']> | undefined)?.turbo
+      : nextConfig.turbopack;
+    const turbopackConfig = {
+      ...existingTurbopack,
+      resolveAlias: providerAlias
+        ? { ...existingTurbopack?.resolveAlias, [PROVIDER_SOURCE]: providerAlias.turbopack }
+        : existingTurbopack?.resolveAlias,
+      rules: {
+        ...existingTurbopack?.rules,
+        ...turbopackRules,
+      },
+    } as NextConfig['turbopack'];
+
     return {
       ...nextConfig,
       pageExtensions,
-      // Options are JSON-serializable (enforced by serializableOptions); cast to
-      // satisfy Next's stricter JSONValue typing on Turbopack loader options.
-      turbopack: {
-        ...nextConfig.turbopack,
-        resolveAlias: providerAlias
-          ? { ...nextConfig.turbopack?.resolveAlias, [PROVIDER_SOURCE]: providerAlias.turbopack }
-          : nextConfig.turbopack?.resolveAlias,
-        rules: {
-          ...nextConfig.turbopack?.rules,
-          ...turbopackRules,
-        },
-      } as NextConfig['turbopack'],
+      // Place the Turbopack config under the version-correct key (options are
+      // JSON-serializable, enforced by serializableOptions).
+      ...(legacy
+        ? {
+            // `experimental.turbo` is gone from Next 16's types but is the only
+            // key older Next reads; cast to set it on those versions.
+            experimental: { ...nextConfig.experimental, turbo: turbopackConfig } as NextConfig['experimental'],
+          }
+        : { turbopack: turbopackConfig }),
       webpack(config, context) {
         // Loaders run right-to-left: our loader compiles MDX→JS first, then
         // Next's default (swc) loader handles RSC/'use client'/module transforms.
