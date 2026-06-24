@@ -27,6 +27,7 @@
     "satteri": "^0.9.2"
   },
   "devDependencies": {
+    "@types/node": "^26.0.0",
     "typescript": "^5",
     "vitest": "^2"
   }
