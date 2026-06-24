@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compileMdx } from '../src/loader.js';
+import { compileMdx, resolveDevelopment } from '../src/loader.js';
 
 const SRC = `---
 title: Hello
@@ -46,6 +46,28 @@ describe('compileMdx (loader core)', () => {
   it('returns code synchronously-resolvable when no async plugins are used', async () => {
     const { code } = await compileMdx('# Just markdown');
     expect(code).toContain('export default MDXContent');
+  });
+
+  describe('resolveDevelopment (dev-mode detection)', () => {
+    it('prefers an explicit option over everything', () => {
+      expect(resolveDevelopment(true, 'production', 'production')).toBe(true);
+      expect(resolveDevelopment(false, 'development', 'development')).toBe(false);
+    });
+
+    it('uses webpack this.mode when present', () => {
+      expect(resolveDevelopment(undefined, 'development', 'production')).toBe(true);
+      expect(resolveDevelopment(undefined, 'production', 'development')).toBe(false);
+    });
+
+    it('falls back to NODE_ENV when mode is absent (Turbopack/bare loader)', () => {
+      expect(resolveDevelopment(undefined, undefined, 'development')).toBe(true);
+      expect(resolveDevelopment(undefined, undefined, 'production')).toBe(false);
+      expect(resolveDevelopment(undefined, undefined, 'test')).toBe(false);
+    });
+
+    it('treats an unset NODE_ENV as development', () => {
+      expect(resolveDevelopment(undefined, undefined, undefined)).toBe(true);
+    });
   });
 
   describe('milestone 4: frontmatter + toc exports', () => {

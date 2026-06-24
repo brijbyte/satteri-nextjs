@@ -1,22 +1,22 @@
 // Webpack/Turbopack loader: compiles Markdown/MDX source to a React module
 // via satteri's Rust-native `mdxToJs`. See CONTEXT.md milestone 1.
 
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL } from "node:url";
 import type {
   Features,
   MdastPluginInput,
   HastPluginInput,
   OptimizeStaticConfig,
   MdxToJsResult,
-} from 'satteri';
-import { collectHeadings } from './headings.js';
-import { parseFrontmatter } from './frontmatter.js';
+} from "satteri";
+import { collectHeadings } from "./headings.js";
+import { parseFrontmatter } from "./frontmatter.js";
 
 /** React-style static optimization: collapse static subtrees to one
  * `dangerouslySetInnerHTML` div instead of per-node `jsx()` calls. */
 const REACT_OPTIMIZE_STATIC: OptimizeStaticConfig = {
-  component: 'div',
-  prop: 'dangerouslySetInnerHTML',
+  component: "div",
+  prop: "dangerouslySetInnerHTML",
   wrapPropValue: true,
 };
 
@@ -38,17 +38,21 @@ export interface CompileOptions {
   /** Emit development output (jsxDEV, source info). Defaults from build mode. */
   development?: boolean;
   /** Slug headings + export a `toc` array (`{ depth, value, id }[]`) from the
-   * compiled module. Default `true`. Set `false` to skip heading ids + TOC. */
+   * compiled module. Set `false` to skip heading ids + TOC.
+   * @default true
+   */
   toc?: boolean;
   /** Parse YAML frontmatter and export it as `frontmatter` from the compiled
-   * module. Default `true`. Set `false` to skip the export. */
+   * module. Set `false` to skip the export.
+   * @default true
+   */
   frontmatter?: boolean;
 }
 
 // Lazy native import so the Rust binary isn't pulled in unless the loader runs.
-let satteriMod: typeof import('satteri') | undefined;
+let satteriMod: typeof import("satteri") | undefined;
 async function loadSatteri() {
-  satteriMod ??= await import('satteri');
+  satteriMod ??= await import("satteri");
   return satteriMod;
 }
 
@@ -80,7 +84,7 @@ export async function compileMdx(
     optimizeStatic:
       options.optimizeStatic === false
         ? undefined
-        : options.optimizeStatic ?? REACT_OPTIMIZE_STATIC,
+        : (options.optimizeStatic ?? REACT_OPTIMIZE_STATIC),
     providerImportSource: options.providerImportSource,
     jsxImportSource: options.jsxImportSource,
     development: options.development,
@@ -89,7 +93,7 @@ export async function compileMdx(
 
   // Append named exports so the module surfaces frontmatter + TOC alongside the
   // default `MDXContent` export. satteri emits an ESM program, so this is valid.
-  let suffix = '';
+  let suffix = "";
   if (wantFrontmatter) {
     const fm = parseFrontmatter(result.frontmatter);
     suffix += `\nexport const frontmatter = ${JSON.stringify(fm)};`;
@@ -102,20 +106,40 @@ export async function compileMdx(
   return suffix ? { ...result, code: result.code + suffix } : result;
 }
 
+/**
+ * Resolve the effective `development` flag for a loader run.
+ *
+ * Precedence: an explicit `options.development` wins; else webpack's `this.mode`
+ * (undefined under Turbopack); else `NODE_ENV`. An **unset** `NODE_ENV` counts as
+ * development — a forgiving default for bare-loader use outside Next. `prod`/`test`
+ * always set it explicitly (`"production"`/`"test"`), so those stay non-dev.
+ */
+export function resolveDevelopment(
+  optionDevelopment: boolean | undefined,
+  mode: string | undefined,
+  env: string | undefined,
+): boolean {
+  if (optionDevelopment !== undefined) return optionDevelopment;
+  if (mode !== undefined) return mode === 'development';
+  return env === 'development' || env === undefined;
+}
+
 // Minimal webpack loader context surface we rely on.
 interface LoaderContext {
   async(): (err: Error | null, content?: string, map?: unknown) => void;
   getOptions?: () => CompileOptions;
   resourcePath?: string;
-  mode?: 'development' | 'production' | 'none';
+  mode?: "development" | "production" | "none";
 }
 
 // Webpack loader entry (async).
 export default function satteriLoader(this: LoaderContext, source: string) {
   const callback = this.async();
   const options = this.getOptions?.() ?? {};
-  const development = options.development ?? this.mode === 'development';
-  const fileURL = this.resourcePath ? pathToFileURL(this.resourcePath) : undefined;
+  const development = resolveDevelopment(options.development, this.mode, process.env.NODE_ENV);
+  const fileURL = this.resourcePath
+    ? pathToFileURL(this.resourcePath)
+    : undefined;
 
   compileMdx(source, { ...options, development }, fileURL).then(
     (result) => callback(null, result.code),
