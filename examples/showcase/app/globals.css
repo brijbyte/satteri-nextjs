@@ -63,8 +63,19 @@ h2 { font-size: 1.25rem; margin-top: 2.5rem; }
 }
 .milestone.done .num { background: rgba(63,185,80,0.15); color: var(--green); border-color: var(--green); }
 .milestone.todo { opacity: 0.6; }
+.milestone .meta { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
 .milestone .title { font-weight: 600; }
 .milestone .desc { color: var(--muted); font-size: 0.9rem; }
+.milestone .paths { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
+.milestone .paths code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: rgba(110, 118, 129, 0.15);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.05rem 0.4rem;
+}
 .status { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; margin-left: auto; }
 .status.done { color: var(--green); }
 .status.todo { color: var(--amber); }

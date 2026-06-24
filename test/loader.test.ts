@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compileMdx, resolveDevelopment } from '../src/loader.js';
+import satteriLoader, { compileMdx, resolveDevelopment } from '../src/loader.js';
 
 const SRC = `---
 title: Hello
@@ -67,6 +67,64 @@ describe('compileMdx (loader core)', () => {
 
     it('treats an unset NODE_ENV as development', () => {
       expect(resolveDevelopment(undefined, undefined, undefined)).toBe(true);
+    });
+  });
+
+  describe('GFM features (milestone 2)', () => {
+    const GFM = `~~struck~~
+
+| a | b |
+|---|---|
+| 1 | 2 |
+`;
+
+    it('renders GFM (strikethrough + table) by default', async () => {
+      const { code } = await compileMdx(GFM);
+      expect(code).toContain('<del>');
+      expect(code).toContain('<table>');
+    });
+
+    it('can disable GFM via features.gfm: false', async () => {
+      const { code } = await compileMdx(GFM, { features: { gfm: false } });
+      expect(code).not.toContain('<del>');
+      expect(code).not.toContain('<table>');
+    });
+  });
+
+  describe('heading slugs (milestone 4)', () => {
+    it('slugs heading text including inline markup', async () => {
+      const { code, data } = await compileMdx('## Hello **bold** world');
+      expect(data.toc).toEqual([{ depth: 2, value: 'Hello bold world', id: 'hello-bold-world' }]);
+      expect(code).toContain('id=\\"hello-bold-world\\"');
+    });
+  });
+
+  describe('webpack loader entry', () => {
+    it('compiles source and calls back with the emitted code', async () => {
+      const code: string = await new Promise((resolve, reject) => {
+        const ctx = {
+          async: () => (err: Error | null, content?: string) =>
+            err ? reject(err) : resolve(content!),
+          getOptions: () => ({}),
+          resourcePath: '/app/page.mdx',
+          mode: 'production' as const,
+        };
+        satteriLoader.call(ctx, '# Loaded');
+      });
+      expect(code).toContain('export default MDXContent');
+      expect(code).toContain('id=\\"loaded\\"');
+    });
+
+    it('reports a compile error through the async callback', async () => {
+      const err: Error = await new Promise((resolve) => {
+        const ctx = {
+          async: () => (e: Error | null) => resolve(e as Error),
+          getOptions: () => ({ hastPlugins: ['satteri-nextjs/plugins#nope'] }),
+        };
+        satteriLoader.call(ctx, '# x');
+      });
+      expect(err).toBeInstanceOf(Error);
+      expect(err.message).toMatch(/no export "nope"/);
     });
   });
 

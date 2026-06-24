@@ -1,4 +1,5 @@
-import { milestones } from './milestones';
+import Link from "next/link";
+import { milestones } from "./milestones";
 
 export default function Home() {
   return (
@@ -11,26 +12,34 @@ export default function Home() {
 
       <ul className="milestones">
         {milestones.map((m) => {
-          const cls = `milestone ${m.done ? 'done' : 'todo'}`;
+          const cls = `milestone ${m.done ? "done" : "todo"}`;
           const body = (
             <>
-              <span className="num">{m.done ? '✓' : m.num}</span>
-              <span>
+              <span className="num">{m.done ? "✓" : m.num}</span>
+              <span className="meta">
                 <span className="title">{m.title}</span>
-                <br />
                 <span className="desc">{m.desc}</span>
+                {(m.lib || m.source) && (
+                  <span className="paths">
+                    {m.lib && <code>{m.lib}</code>}
+                    {m.source && <code>{m.source}</code>}
+                  </span>
+                )}
               </span>
-              <span className={`status ${m.done ? 'done' : 'todo'}`}>
-                {m.done ? 'live' : 'soon'}
+              <span className={`status ${m.done ? "done" : "todo"}`}>
+                {m.done ? "live" : "soon"}
               </span>
             </>
           );
           return (
             <li key={m.num} className={cls}>
               {m.href ? (
-                <a href={m.href} style={{ display: 'contents', color: 'inherit' }}>
+                <Link
+                  href={m.href}
+                  style={{ display: "contents", color: "inherit" }}
+                >
                   {body}
-                </a>
+                </Link>
               ) : (
                 body
               )}
