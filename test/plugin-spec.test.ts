@@ -35,4 +35,16 @@ describe('plugin specs through compileMdx', () => {
       /no export "nope"/,
     );
   });
+
+  it('supports a mixed array of bare-string and [spec, opts] entries', async () => {
+    // First entry is a bare string spec; second is a [spec, opts] tuple that
+    // runs after it and overrides `rel`. Both forms coexist in one array.
+    const { code } = await compileMdx(DOC, {
+      hastPlugins: [
+        'satteri-nextjs/plugins#externalLinks',
+        ['satteri-nextjs/plugins#externalLinks', { rel: 'second-wins' }],
+      ],
+    });
+    expect(html(code)).toContain('href="https://example.com" target="_blank" rel="second-wins"');
+  });
 });
