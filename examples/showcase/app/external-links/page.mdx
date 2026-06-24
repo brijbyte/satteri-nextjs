@@ -1,0 +1,48 @@
+---
+title: externalLinks plugin via config
+description: A satteri plugin wired through withSatteri with a serializable string spec.
+---
+
+[← all milestones](/)
+
+# externalLinks plugin (real config)
+
+This **whole page is a real `.mdx` file** compiled by the satteri loader. Unlike
+`/milestone-5` (which compiles inline via `compileMdx` + `evaluate`), here the
+`externalLinks` plugin is wired through `next.config.mjs` and applied by the
+loader — and it works under **Turbopack**, because the plugin is referenced by a
+serializable **string spec** rather than an imported function.
+
+## How it's configured
+
+```js
+// next.config.mjs
+withSatteri({
+  // 'module#namedExport' — JSON-serializable, so Turbopack keeps it.
+  hastPlugins: ['satteri-nextjs/plugins#externalLinks'],
+})(nextConfig);
+```
+
+To pass options, use the rehype-style tuple form:
+
+```js
+hastPlugins: [['satteri-nextjs/plugins#externalLinks', { target: '_top' }]];
+```
+
+## See it work
+
+- An [external link](https://satteri.bruits.org) — gets `target="_blank"` and
+  `rel="noopener noreferrer"`.
+- A [protocol-relative link](//example.com/cdn) — also treated as external.
+- An [internal link](/milestone-4) — left untouched.
+
+> View source on the anchors above: the external ones carry `target`/`rel`, the
+> internal one does not — all applied at build time by the loader.
+
+## Why string specs
+
+Turbopack loader options must be JSON-serializable, so an imported plugin
+**function** can't cross into the Turbopack rule (webpack only). A string
+specifier (and a `[spec, options]` tuple) **is** serializable; the loader
+dynamic-imports it and calls it as `factory(options)` at compile time, so the
+same config drives both bundlers.

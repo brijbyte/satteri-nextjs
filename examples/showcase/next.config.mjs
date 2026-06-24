@@ -4,6 +4,10 @@ import withSatteri from 'satteri-nextjs';
 // the satteri loader (webpack rule + Turbopack rule + pageExtensions).
 const withMdx = withSatteri({
   features: { gfm: true, frontmatter: true },
+  // Plugin referenced by a serializable string spec, so it applies under BOTH
+  // webpack and Turbopack (an imported `externalLinks()` would be webpack-only).
+  // Rewrites off-site links with target/rel across every .mdx page.
+  hastPlugins: ['satteri-nextjs/plugins#externalLinks'],
 });
 
 /** @type {import('next').NextConfig} */

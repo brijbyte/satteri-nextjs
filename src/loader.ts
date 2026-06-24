@@ -11,6 +11,8 @@ import type {
 } from "satteri";
 import { collectHeadings } from "./headings.js";
 import { parseFrontmatter } from "./frontmatter.js";
+import { resolvePlugins } from "./plugin-spec.js";
+import type { PluginSpec } from "./plugin-spec.js";
 
 /** React-style static optimization: collapse static subtrees to one
  * `dangerouslySetInnerHTML` div instead of per-node `jsx()` calls. */
@@ -21,10 +23,14 @@ const REACT_OPTIMIZE_STATIC: OptimizeStaticConfig = {
 };
 
 export interface CompileOptions {
-  /** satteri mdast plugins (~ remark). */
-  mdastPlugins?: MdastPluginInput[];
-  /** satteri hast plugins (~ rehype). */
-  hastPlugins?: HastPluginInput[];
+  /** satteri mdast plugins (~ remark). Each entry is an imported plugin or a
+   * serializable {@link PluginSpec} string/tuple (the latter works under
+   * Turbopack too). */
+  mdastPlugins?: (MdastPluginInput | PluginSpec)[];
+  /** satteri hast plugins (~ rehype). Each entry is an imported plugin or a
+   * serializable {@link PluginSpec} string/tuple (the latter works under
+   * Turbopack too). */
+  hastPlugins?: (HastPluginInput | PluginSpec)[];
   /** satteri parser feature toggles (gfm, frontmatter, math, directive, ...). */
   features?: Features;
   /** Static-subtree collapsing. Defaults to the React-style config; pass
@@ -72,13 +78,14 @@ export async function compileMdx(
   const wantToc = options.toc !== false;
   const wantFrontmatter = options.frontmatter !== false;
 
+  // Resolve any string/tuple specs to real plugins (dynamic import).
+  const mdastPlugins = await resolvePlugins<MdastPluginInput>(options.mdastPlugins);
+  const userHast = await resolvePlugins<HastPluginInput>(options.hastPlugins);
   // Inject our heading collector last so user hast plugins run first.
-  const hastPlugins = wantToc
-    ? [...(options.hastPlugins ?? []), collectHeadings()]
-    : options.hastPlugins;
+  const hastPlugins = wantToc ? [...userHast, collectHeadings()] : userHast;
 
   const result = await mdxToJs(source, {
-    mdastPlugins: options.mdastPlugins,
+    mdastPlugins,
     hastPlugins,
     features: options.features,
     optimizeStatic:

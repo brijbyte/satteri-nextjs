@@ -4,6 +4,7 @@ import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';
 import type { CompileOptions } from './loader.js';
+import { isPluginSpec } from './plugin-spec.js';
 
 export interface WithSatteriOptions extends CompileOptions {
   /** Files to treat as Markdown/MDX. Defaults to `/\.mdx?$/` (`.md` + `.mdx`). */
@@ -47,7 +48,8 @@ function resolveProvider(): ProviderAlias {
   return { webpack: fallback, turbopack: FALLBACK_SPECIFIER };
 }
 
-/** satteri options that survive JSON serialization (safe for Turbopack). */
+/** satteri options that survive JSON serialization (safe for Turbopack).
+ * String/tuple plugin specs are kept; imported function/object plugins are not. */
 function serializableOptions(options: CompileOptions): Record<string, unknown> {
   const { features, optimizeStatic, providerImportSource, jsxImportSource, development, toc, frontmatter } = options;
   const out: Record<string, unknown> = {};
@@ -58,6 +60,10 @@ function serializableOptions(options: CompileOptions): Record<string, unknown> {
   if (development !== undefined) out.development = development;
   if (toc !== undefined) out.toc = toc;
   if (frontmatter !== undefined) out.frontmatter = frontmatter;
+  const mdastSpecs = options.mdastPlugins?.filter(isPluginSpec);
+  const hastSpecs = options.hastPlugins?.filter(isPluginSpec);
+  if (mdastSpecs?.length) out.mdastPlugins = mdastSpecs;
+  if (hastSpecs?.length) out.hastPlugins = hastSpecs;
   return out;
 }
 
@@ -102,12 +108,18 @@ function usesLegacyTurbopackKey(): boolean {
  */
 export default function withSatteri(options: WithSatteriOptions = {}) {
   const { extension = /\.mdx?$/, ...compileOptions } = options;
-  const hasPlugins = Boolean(compileOptions.mdastPlugins?.length || compileOptions.hastPlugins?.length);
+  // Imported function/object plugins can't be serialized into the Turbopack rule;
+  // string/tuple specs can. Only warn about the non-serializable ones.
+  const nonSerializablePlugins = [
+    ...(compileOptions.mdastPlugins ?? []),
+    ...(compileOptions.hastPlugins ?? []),
+  ].some((p) => !isPluginSpec(p));
 
-  if (hasPlugins) {
+  if (nonSerializablePlugins) {
     console.warn(
-      '[satteri-nextjs] mdast/hast plugins are not serializable, so they apply ' +
-        'under webpack only — Turbopack will compile without them. See CONTEXT.md.',
+      '[satteri-nextjs] imported mdast/hast plugins are not serializable, so they ' +
+        'apply under webpack only — Turbopack compiles without them. Pass a string ' +
+        "spec (e.g. 'pkg/mod#plugin' or ['pkg/mod#plugin', options]) to use them under both.",
     );
   }
 
@@ -191,6 +203,8 @@ export { compileMdx } from './loader.js';
 export { collectHeadings } from './headings.js';
 export { parseFrontmatter } from './frontmatter.js';
 export { externalLinks } from './plugins.js';
+export { isPluginSpec } from './plugin-spec.js';
 export type { CompileOptions };
 export type { TocEntry } from './headings.js';
 export type { ExternalLinksOptions } from './plugins.js';
+export type { PluginSpec } from './plugin-spec.js';

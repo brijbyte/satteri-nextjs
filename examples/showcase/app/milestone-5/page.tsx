@@ -81,9 +81,15 @@ export default async function Milestone5() {
           <li>
             Conclusion: write <strong>satteri-native</strong> plugins (like{' '}
             <code>externalLinks</code> / <code>collectHeadings</code>). They’re the
-            supported extension path; pass them via <code>compileMdx</code> or{' '}
-            <code>withSatteri</code> (webpack only, since Turbopack can’t serialize
-            functions).
+            supported extension path.
+          </li>
+          <li>
+            Pass them via <code>compileMdx</code> (above) or <code>withSatteri</code>.
+            An <em>imported</em> plugin function is webpack-only (Turbopack can’t
+            serialize it), but a <strong>string spec</strong> like{' '}
+            <code>&apos;satteri-nextjs/plugins#externalLinks&apos;</code> is
+            serializable and works under <strong>both</strong> bundlers — see the{' '}
+            <a href="/external-links">config-driven example</a>.
           </li>
         </ul>
       </div>

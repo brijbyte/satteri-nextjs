@@ -50,12 +50,26 @@ describe('withSatteri (config wrapper)', () => {
     expect(rule.use[1].options.mdastPlugins).toEqual([plugin]);
   });
 
-  it('strips non-serializable plugins from Turbopack options and warns', () => {
+  it('strips non-serializable (imported) plugins from Turbopack options and warns', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const cfg = withSatteri({ mdastPlugins: [{ heading() {} }] })({});
     const rule: any = cfg.turbopack!.rules!['*.mdx'];
     expect(rule.loaders[0].options.mdastPlugins).toBeUndefined();
     expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('keeps string/tuple plugin specs in Turbopack options without warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const cfg = withSatteri({
+      hastPlugins: ['satteri-nextjs/plugins#externalLinks', ['pkg/mod#p', { a: 1 }]],
+    })({});
+    const rule: any = cfg.turbopack!.rules!['*.mdx'];
+    expect(rule.loaders[0].options.hastPlugins).toEqual([
+      'satteri-nextjs/plugins#externalLinks',
+      ['pkg/mod#p', { a: 1 }],
+    ]);
+    expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
 
