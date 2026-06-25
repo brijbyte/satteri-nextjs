@@ -49,11 +49,13 @@ export default async function Milestone1() {
 
   return (
     <>
-      <a className="back" href="/">← all milestones</a>
+      <a className="back" href="/">
+        ← all milestones
+      </a>
       <h1>Milestone 1 — Loader core</h1>
       <p className="lede">
-        Source MDX → <code>compileMdx</code> → a React module. Below: the input,
-        the generated module, the extracted frontmatter, and the live render.
+        Source MDX → <code>compileMdx</code> → a React module. Below: the input, the generated
+        module, the extracted frontmatter, and the live render.
       </p>
 
       <h2>1. Source</h2>
@@ -76,7 +78,9 @@ export default async function Milestone1() {
 
       <h2>4. Live render</h2>
       <div className="panel">
-        <div className="panel-title">&lt;Content components=&#123;&#123; Counter &#125;&#125; /&gt;</div>
+        <div className="panel-title">
+          &lt;Content components=&#123;&#123; Counter &#125;&#125; /&gt;
+        </div>
         <div className="rendered">
           <Content components={{ Counter }} />
         </div>

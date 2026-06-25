@@ -1,21 +1,21 @@
-import Link from "next/link";
-import { milestones } from "./milestones";
+import Link from 'next/link';
+import { milestones } from './milestones';
 
 export default function Home() {
   return (
     <>
       <h1>satteri-nextjs showcase</h1>
       <p className="lede">
-        A Next.js integration for satteri — Rust-native Markdown/MDX compiled to
-        React/RSC modules. Each milestone gets a live demo as it lands.
+        A Next.js integration for satteri — Rust-native Markdown/MDX compiled to React/RSC modules.
+        Each milestone gets a live demo as it lands.
       </p>
 
       <ul className="milestones">
         {milestones.map((m) => {
-          const cls = `milestone ${m.done ? "done" : "todo"}`;
+          const cls = `milestone ${m.done ? 'done' : 'todo'}`;
           const body = (
             <>
-              <span className="num">{m.done ? "✓" : m.num}</span>
+              <span className="num">{m.done ? '✓' : m.num}</span>
               <span className="meta">
                 <span className="title">{m.title}</span>
                 <span className="desc">{m.desc}</span>
@@ -26,18 +26,15 @@ export default function Home() {
                   </span>
                 )}
               </span>
-              <span className={`status ${m.done ? "done" : "todo"}`}>
-                {m.done ? "live" : "soon"}
+              <span className={`status ${m.done ? 'done' : 'todo'}`}>
+                {m.done ? 'live' : 'soon'}
               </span>
             </>
           );
           return (
             <li key={m.num} className={cls}>
               {m.href ? (
-                <Link
-                  href={m.href}
-                  style={{ display: "contents", color: "inherit" }}
-                >
+                <Link href={m.href} style={{ display: 'contents', color: 'inherit' }}>
                   {body}
                 </Link>
               ) : (

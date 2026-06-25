@@ -8,7 +8,9 @@ describe('externalLinks plugin (milestone 5)', () => {
   it('adds target/rel to external anchors only', async () => {
     const { code } = await compileMdx(DOC, { hastPlugins: [externalLinks()] });
     // Static HTML is JSON-escaped inside dangerouslySetInnerHTML.
-    expect(code).toContain('href=\\"https://example.com\\" target=\\"_blank\\" rel=\\"noopener noreferrer\\"');
+    expect(code).toContain(
+      'href=\\"https://example.com\\" target=\\"_blank\\" rel=\\"noopener noreferrer\\"'
+    );
     expect(code).toContain('href=\\"//cdn.dev/x\\" target=\\"_blank\\"');
     // Internal link is untouched.
     expect(code).toContain('href=\\"/docs/foo\\">internal</a>');
@@ -17,7 +19,9 @@ describe('externalLinks plugin (milestone 5)', () => {
 
   it('honors custom target/rel and test predicate', async () => {
     const { code } = await compileMdx(DOC, {
-      hastPlugins: [externalLinks({ target: '_top', rel: 'external', test: (h) => h.startsWith('/docs') })],
+      hastPlugins: [
+        externalLinks({ target: '_top', rel: 'external', test: (h) => h.startsWith('/docs') }),
+      ],
     });
     // Now only the /docs link matches.
     expect(code).toContain('href=\\"/docs/foo\\" target=\\"_top\\" rel=\\"external\\"');

@@ -37,7 +37,9 @@ async function resolvePlugin(spec: PluginSpec): Promise<unknown> {
   const mod = (await import(modulePath)) as Record<string, unknown>;
   const exported = mod[exportName];
   if (exported === undefined) {
-    throw new Error(`[satteri-nextjs] plugin module "${modulePath}" has no export "${exportName}".`);
+    throw new Error(
+      `[satteri-nextjs] plugin module "${modulePath}" has no export "${exportName}".`
+    );
   }
   return typeof exported === 'function'
     ? (exported as (o?: unknown) => unknown)(options)
@@ -46,10 +48,8 @@ async function resolvePlugin(spec: PluginSpec): Promise<unknown> {
 
 /** Resolve a mixed list of imported plugins + string specs to plugin values. */
 export async function resolvePlugins<T>(
-  plugins: ReadonlyArray<T | PluginSpec> | undefined,
+  plugins: ReadonlyArray<T | PluginSpec> | undefined
 ): Promise<T[]> {
   if (!plugins?.length) return [];
-  return Promise.all(
-    plugins.map((p) => (isPluginSpec(p) ? resolvePlugin(p) : p)),
-  ) as Promise<T[]>;
+  return Promise.all(plugins.map((p) => (isPluginSpec(p) ? resolvePlugin(p) : p))) as Promise<T[]>;
 }

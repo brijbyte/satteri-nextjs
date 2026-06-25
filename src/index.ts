@@ -51,7 +51,15 @@ function resolveProvider(): ProviderAlias {
 /** satteri options that survive JSON serialization (safe for Turbopack).
  * String/tuple plugin specs are kept; imported function/object plugins are not. */
 function serializableOptions(options: CompileOptions): Record<string, unknown> {
-  const { features, optimizeStatic, providerImportSource, jsxImportSource, development, toc, frontmatter } = options;
+  const {
+    features,
+    optimizeStatic,
+    providerImportSource,
+    jsxImportSource,
+    development,
+    toc,
+    frontmatter,
+  } = options;
   const out: Record<string, unknown> = {};
   if (features !== undefined) out.features = features;
   if (optimizeStatic !== undefined) out.optimizeStatic = optimizeStatic;
@@ -119,7 +127,7 @@ export default function withSatteri(options: WithSatteriOptions = {}) {
     console.warn(
       '[satteri-nextjs] imported mdast/hast plugins are not serializable, so they ' +
         'apply under webpack only — Turbopack compiles without them. Pass a string ' +
-        "spec (e.g. 'pkg/mod#plugin' or ['pkg/mod#plugin', options]) to use them under both.",
+        "spec (e.g. 'pkg/mod#plugin' or ['pkg/mod#plugin', options]) to use them under both."
     );
   }
 
@@ -176,7 +184,10 @@ export default function withSatteri(options: WithSatteriOptions = {}) {
         ? {
             // `experimental.turbo` is gone from Next 16's types but is the only
             // key older Next reads; cast to set it on those versions.
-            experimental: { ...nextConfig.experimental, turbo: turbopackConfig } as NextConfig['experimental'],
+            experimental: {
+              ...nextConfig.experimental,
+              turbo: turbopackConfig,
+            } as NextConfig['experimental'],
           }
         : { turbopack: turbopackConfig }),
       webpack(config, context) {
