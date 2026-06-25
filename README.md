@@ -216,18 +216,9 @@ const { code, frontmatter, data } = await compileMdx(source, {
 - **Next.js version:** the Turbopack config key moved from `experimental.turbo`
   (13.0–15.2) to top-level `turbopack` (15.3+); `withSatteri` detects the
   installed version and writes to the correct key automatically.
-- **`serverExternalPackages`:** to keep the native binary out of your bundle, add
-  `satteri` (and `satteri-nextjs`) to `serverExternalPackages` (Next ≥ 15) or
-  `experimental.serverComponentsExternalPackages` (Next 14).
 - **Custom provider:** if you pass your own `providerImportSource`, `withSatteri`
   stops managing the `mdx-components` alias — wire it up yourself.
 
 ## License
 
 MIT
-
----
-
-> Building on or contributing to this package? See [`CONTEXT.md`](./CONTEXT.md)
-> for the design rationale, satteri API/plugin-model notes, the Astro-wrapper
-> reference, and the milestone history.
