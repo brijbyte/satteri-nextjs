@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import withSatteri, { isLegacyTurbopackVersion } from '../src/index.js';
 
 function applyWebpack(nextConfig: any, base = { module: { rules: [] as any[] } }) {
-  const context = { defaultLoaders: { babel: 'next-swc-loader' } } as any;
+  const context = { dir: process.cwd(), defaultLoaders: { babel: 'next-swc-loader' } } as any;
   const result = nextConfig.webpack(base, context);
   return result;
 }

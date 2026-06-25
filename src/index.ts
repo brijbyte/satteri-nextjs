@@ -33,14 +33,13 @@ interface ProviderAlias {
   turbopack: string;
 }
 
-/** Find the app's `mdx-components` file (root or `src/`), else the fallback. */
-function resolveProvider(): ProviderAlias {
-  const cwd = process.cwd();
+/** Find the app's `mdx-components` file (root or `src/`) under `rootDir`, else the fallback. */
+function resolveProvider(rootDir: string): ProviderAlias {
   for (const dir of ['', 'src']) {
     for (const ext of ['tsx', 'ts', 'jsx', 'js', 'mjs']) {
-      const candidate = join(cwd, dir, `mdx-components.${ext}`);
+      const candidate = join(rootDir, dir, `mdx-components.${ext}`);
       if (existsSync(candidate)) {
-        return { webpack: candidate, turbopack: './' + relative(cwd, candidate) };
+        return { webpack: candidate, turbopack: './' + relative(rootDir, candidate) };
       }
     }
   }
@@ -135,7 +134,6 @@ export default function withSatteri(options: WithSatteriOptions = {}) {
   const provider = compileOptions.providerImportSource ?? PROVIDER_SOURCE;
   const ownsProvider = provider === PROVIDER_SOURCE;
   const loaderOptions: CompileOptions = { ...compileOptions, providerImportSource: provider };
-  const providerAlias = ownsProvider ? resolveProvider() : undefined;
 
   // Turbopack globs derived from the extension (best-effort; defaults to both).
   const turbopackGlobs = [
@@ -158,6 +156,11 @@ export default function withSatteri(options: WithSatteriOptions = {}) {
     const turbopackRules: Record<string, typeof turbopackRule> = {};
     for (const glob of globs) turbopackRules[glob] = turbopackRule;
 
+    // Turbopack's config is built here with no per-build dir hook, so resolve
+    // relative to cwd (Next sets it to the project root). Webpack resolves
+    // separately below using the authoritative `context.dir`.
+    const turbopackProvider = ownsProvider ? resolveProvider(process.cwd()) : undefined;
+
     // Next <15.3 reads Turbopack config from `experimental.turbo`; 15.3+ from the
     // top-level `turbopack`. Merge with whichever the user already populated.
     const legacy = usesLegacyTurbopackKey();
@@ -166,8 +169,8 @@ export default function withSatteri(options: WithSatteriOptions = {}) {
       : nextConfig.turbopack;
     const turbopackConfig = {
       ...existingTurbopack,
-      resolveAlias: providerAlias
-        ? { ...existingTurbopack?.resolveAlias, [PROVIDER_SOURCE]: providerAlias.turbopack }
+      resolveAlias: turbopackProvider
+        ? { ...existingTurbopack?.resolveAlias, [PROVIDER_SOURCE]: turbopackProvider.turbopack }
         : existingTurbopack?.resolveAlias,
       rules: {
         ...existingTurbopack?.rules,
@@ -197,10 +200,12 @@ export default function withSatteri(options: WithSatteriOptions = {}) {
           test: extension,
           use: [context.defaultLoaders.babel, { loader: LOADER, options: loaderOptions }],
         });
-        if (providerAlias) {
+        // Resolve against Next's root dir (`context.dir`), not cwd.
+        const webpackProvider = ownsProvider ? resolveProvider(context.dir) : undefined;
+        if (webpackProvider) {
           config.resolve ??= {};
           config.resolve.alias ??= {};
-          config.resolve.alias[PROVIDER_SOURCE] = providerAlias.webpack;
+          config.resolve.alias[PROVIDER_SOURCE] = webpackProvider.webpack;
         }
         return typeof nextConfig.webpack === 'function'
           ? nextConfig.webpack(config, context)

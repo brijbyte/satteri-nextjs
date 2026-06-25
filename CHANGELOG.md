@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > section. Add new releases at the top, under their own `## [x.y.z] - YYYY-MM-DD`
 > heading.
 
+## [0.0.2] - 2026-06-25
+
+### Fixed
+
+- Update the resolver logic for mdx-components file to use context directory from
+  next.js when available.
+
 ## [0.0.1] - 2026-06-24
 
 First public release.
