@@ -43,13 +43,15 @@ jobs:
         if: always()
         run: pnpm typecheck
 
-      - name: Test
-        if: always()
-        run: pnpm test
-
+      # Build before Test: the tests import `satteri-nextjs/*` through the
+      # package's own exports map, which resolves to ./dist — so dist must exist.
       - name: Build
         if: always()
         run: pnpm build
+
+      - name: Test
+        if: always()
+        run: pnpm test
 
       # Last: dedupe re-resolves and may rewrite node_modules, so keep it after
       # the steps that depend on the installed tree.
@@ -93,6 +95,10 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      # Install first so set-overrides.mjs can resolve its `yaml` dependency.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
       - name: Pin Next.js ${{ matrix.next }}
         if: matrix.next != '16'
         run: >-
@@ -108,9 +114,10 @@ jobs:
         working-directory: examples/showcase
         run: cp "${{ matrix.config }}" next.config.mjs
 
-      # --no-frozen-lockfile: the override above changes the resolution, so the
-      # committed lockfile no longer matches (and for v16 it's a clean no-op).
-      - name: Install
+      # Re-resolve with the override applied (only for 14/15; the pin step is a
+      # no-op on 16 and this just re-confirms the frozen tree).
+      - name: Apply override
+        if: matrix.next != '16'
         run: pnpm install --no-frozen-lockfile
 
       - name: Build library
