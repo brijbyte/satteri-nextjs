@@ -15,6 +15,10 @@ concurrency:
 permissions:
   contents: read
 
+# Disable Next.js telemetry for every `next` call in this workflow.
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+
 jobs:
   check:
     runs-on: ubuntu-latest
