@@ -11,7 +11,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <header className="site-header">
-          <a href="/" className="brand">satteri-nextjs</a>
+          <a href="/" className="brand">
+            satteri-nextjs
+          </a>
           <span className="tag">showcase</span>
         </header>
         <main className="container">{children}</main>

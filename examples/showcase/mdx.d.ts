@@ -8,3 +8,6 @@ declare module '*.mdx' {
   export const frontmatter: Record<string, unknown>;
   export const toc: TocEntry[];
 }
+
+// Next <16 does not declare global CSS side-effect imports; harmless on 16.
+declare module '*.css';

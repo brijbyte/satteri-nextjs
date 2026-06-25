@@ -1,0 +1,140 @@
+name: CI
+
+# Runs on every PR: verifies formatting, lint, types, tests, and that the
+# package builds. All checks run even if an earlier one fails (fail-fast off
+# at the step level via `if: always()`), so a PR sees every problem at once.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Disable Next.js telemetry for every `next` call in this workflow.
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Format
+        if: always()
+        run: pnpm format:check
+
+      - name: Lint
+        if: always()
+        run: pnpm lint
+
+      - name: Typecheck
+        if: always()
+        run: pnpm typecheck
+
+      # Build before Test: the tests import `satteri-nextjs/*` through the
+      # package's own exports map, which resolves to ./dist — so dist must exist.
+      - name: Build
+        if: always()
+        run: pnpm build
+
+      - name: Test
+        if: always()
+        run: pnpm test
+
+      # Last: dedupe re-resolves and may rewrite node_modules, so keep it after
+      # the steps that depend on the installed tree.
+      - name: Dedupe
+        if: always()
+        run: pnpm dedupe --check
+
+  # Verify the showcase app builds against the Next.js versions we support.
+  # v16 is the pinned version in examples/showcase; v14/v15 are forced via a
+  # pnpm `overrides` merge into pnpm-workspace.yaml (scripts/set-overrides.mjs).
+  # Next 14 predates React 19, so it also pins react/react-dom back to 18, and
+  # uses its own next.config.14.mjs (swapped in, since next has no --config flag).
+  #
+  # Each version builds with every bundler it supports (see `bundlers`, a JSON
+  # list of `next build` flags; "" = the default bundler). 15/16 do both
+  # turbopack and webpack; 14 is webpack-only (it has no turbopack build, and
+  # `--webpack` isn't a valid flag there). The .next cache is wiped before each
+  # build so the two bundlers never read each other's artifacts.
+  showcase:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - next: '16' # pinned in package.json — no override needed
+            bundlers: '["--turbopack", "--webpack"]'
+          - next: '15'
+            bundlers: '["--turbopack", ""]' # "" = webpack (the default)
+          - next: '14'
+            react: '18'
+            bundlers: '[""]' # webpack-only
+            config: 'next.config.14.mjs' # uses experimental.serverComponentsExternalPackages
+    name: showcase (next ${{ matrix.next }})
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # Install first so set-overrides.mjs can resolve its `yaml` dependency.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Pin Next.js ${{ matrix.next }}
+        if: matrix.next != '16'
+        run: >-
+          node scripts/set-overrides.mjs next=${{ matrix.next }}
+          ${{ matrix.react && format('react={0} react-dom={0}', matrix.react) || '' }}
+
+      # next has no --config flag, so select the version's config by swapping it
+      # into the auto-loaded next.config.mjs. Only Next 14 needs a different one
+      # (it uses experimental.serverComponentsExternalPackages); 15/16 share the
+      # default. The variant imports its shared parts from next.config.shared.mjs.
+      - name: Use Next ${{ matrix.next }} config
+        if: matrix.config
+        working-directory: examples/showcase
+        run: cp "${{ matrix.config }}" next.config.mjs
+
+      # Re-resolve with the override applied (only for 14/15; the pin step is a
+      # no-op on 16 and this just re-confirms the frozen tree).
+      - name: Apply override
+        if: matrix.next != '16'
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build library
+        run: pnpm build
+
+      # One build per supported bundler. `.next` is removed before each so a
+      # clean build is verified and the bundlers don't share cache artifacts.
+      - name: Build showcase
+        working-directory: examples/showcase
+        run: |
+          jq -r '.[]' <<< '${{ matrix.bundlers }}' | while IFS= read -r flag; do
+            echo "::group::next ${{ matrix.next }} build ${flag:-(default)}"
+            rm -rf .next
+            pnpm --filter satteri-nextjs-showcase build $flag
+            echo "::endgroup::"
+          done

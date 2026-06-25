@@ -83,7 +83,9 @@ describe('withSatteri (config wrapper)', () => {
     const tbAlias = (cfg.turbopack as any).resolveAlias['next-mdx-import-source-file'];
     expect(tbAlias).toBe('satteri-nextjs/mdx-components-fallback');
     const config = applyWebpack(cfg, { module: { rules: [] }, resolve: { alias: {} } } as any);
-    expect(config.resolve.alias['next-mdx-import-source-file']).toMatch(/mdx-components-fallback\.js$/);
+    expect(config.resolve.alias['next-mdx-import-source-file']).toMatch(
+      /mdx-components-fallback\.js$/
+    );
   });
 
   it('does not own the alias when a custom providerImportSource is given', () => {

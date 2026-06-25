@@ -132,18 +132,18 @@ and warns).
 
 `withSatteri(options)` accepts:
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `features` | `{ gfm?, frontmatter?, math?, directive?, smartPunctuation?, … }` | satteri defaults (GFM on) | satteri parser feature toggles. |
-| `mdastPlugins` | `(plugin \| PluginSpec)[]` | `[]` | satteri **mdast** plugins (~ remark). |
-| `hastPlugins` | `(plugin \| PluginSpec)[]` | `[]` | satteri **hast** plugins (~ rehype). |
-| `optimizeStatic` | `OptimizeStaticConfig \| false` | React-style | Collapse static subtrees to one HTML string. `false` emits per-node JSX. |
-| `toc` | `boolean` | `true` | Slug headings and export `toc`. |
-| `frontmatter` | `boolean` | `true` | Parse YAML frontmatter and export `frontmatter`. |
-| `providerImportSource` | `string` | managed | Where `useMDXComponents` is imported from. Override to use your own provider (e.g. `@mdx-js/react`); then you wire its alias yourself. |
-| `jsxImportSource` | `string` | `"react"` | JSX runtime import source. |
-| `development` | `boolean` | from build mode | Emit `jsxDEV` / source info. |
-| `extension` | `RegExp` | `/\.mdx?$/` | Which files to treat as Markdown/MDX. |
+| Option                 | Type                                                              | Default                   | Description                                                                                                                            |
+| ---------------------- | ----------------------------------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `features`             | `{ gfm?, frontmatter?, math?, directive?, smartPunctuation?, … }` | satteri defaults (GFM on) | satteri parser feature toggles.                                                                                                        |
+| `mdastPlugins`         | `(plugin \| PluginSpec)[]`                                        | `[]`                      | satteri **mdast** plugins (~ remark).                                                                                                  |
+| `hastPlugins`          | `(plugin \| PluginSpec)[]`                                        | `[]`                      | satteri **hast** plugins (~ rehype).                                                                                                   |
+| `optimizeStatic`       | `OptimizeStaticConfig \| false`                                   | React-style               | Collapse static subtrees to one HTML string. `false` emits per-node JSX.                                                               |
+| `toc`                  | `boolean`                                                         | `true`                    | Slug headings and export `toc`.                                                                                                        |
+| `frontmatter`          | `boolean`                                                         | `true`                    | Parse YAML frontmatter and export `frontmatter`.                                                                                       |
+| `providerImportSource` | `string`                                                          | managed                   | Where `useMDXComponents` is imported from. Override to use your own provider (e.g. `@mdx-js/react`); then you wire its alias yourself. |
+| `jsxImportSource`      | `string`                                                          | `"react"`                 | JSX runtime import source.                                                                                                             |
+| `development`          | `boolean`                                                         | from build mode           | Emit `jsxDEV` / source info.                                                                                                           |
+| `extension`            | `RegExp`                                                          | `/\.mdx?$/`               | Which files to treat as Markdown/MDX.                                                                                                  |
 
 ## Plugins
 
@@ -195,19 +195,21 @@ use `compileMdx`:
 import { compileMdx } from 'satteri-nextjs/loader';
 
 const { code, frontmatter, data } = await compileMdx(source, {
-  hastPlugins: [/* … */],
+  hastPlugins: [
+    /* … */
+  ],
 });
 // `code` is an ESM module string; `data.toc` holds collected headings.
 ```
 
 ## Exports
 
-| Specifier | Exports |
-| --- | --- |
-| `satteri-nextjs` | `withSatteri` (default), `compileMdx`, `collectHeadings`, `parseFrontmatter`, `externalLinks`, `isPluginSpec`, types |
-| `satteri-nextjs/loader` | the loader (default) + `compileMdx`, `resolveDevelopment` |
-| `satteri-nextjs/plugins` | `externalLinks` (and future built-in plugins) |
-| `satteri-nextjs/mdx-components-fallback` | the no-op provider used when no `mdx-components` file exists |
+| Specifier                                | Exports                                                                                                              |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `satteri-nextjs`                         | `withSatteri` (default), `compileMdx`, `collectHeadings`, `parseFrontmatter`, `externalLinks`, `isPluginSpec`, types |
+| `satteri-nextjs/loader`                  | the loader (default) + `compileMdx`, `resolveDevelopment`                                                            |
+| `satteri-nextjs/plugins`                 | `externalLinks` (and future built-in plugins)                                                                        |
+| `satteri-nextjs/mdx-components-fallback` | the no-op provider used when no `mdx-components` file exists                                                         |
 
 ## Compatibility notes
 

@@ -21,7 +21,7 @@ function Note({ children }: { children?: ReactNode }) {
 // `providerImportSource` (aliased by withSatteri) and merges the returned map —
 // so any .mdx file can use <Counter/> / <Note/> with no per-page wiring.
 export function useMDXComponents(
-  components: Record<string, unknown> = {},
+  components: Record<string, unknown> = {}
 ): Record<string, unknown> {
   return { Counter, Note, ...components };
 }

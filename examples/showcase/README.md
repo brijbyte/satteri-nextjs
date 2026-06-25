@@ -24,15 +24,15 @@ Then open http://localhost:3000. `next.config.mjs` wraps the config with
 
 ## What each route shows
 
-| Route | Milestone | Demonstrates |
-| --- | --- | --- |
-| `/` | — | Index, driven by `app/milestones.ts`. |
-| `/milestone-1` | 1 — Loader core | `compileMdx()` source → `{ code, frontmatter, data }` → live render via `evaluate`. |
-| `/milestone-2` | 2 — `withSatteri` | A real `app/milestone-2/page.mdx` rendered through the loader (no `evaluate` shim); GFM + frontmatter strip. |
-| `/milestone-3` | 3 — Provider | `<Counter>` / `<Note>` resolved from root `mdx-components.tsx` with no per-page wiring. |
-| `/milestone-4` | 4 — TOC / frontmatter | `import Content, { frontmatter, toc }` from a `.mdx` module; renders a TOC + frontmatter `<dl>` and Next `metadata`. |
-| `/milestone-5` | 5 — Plugins | `externalLinks` satteri plugin applied via `compileMdx`; "why no remark/rehype shim" writeup. |
-| `/external-links` | 5 — Plugins | A real `.mdx` route wiring `externalLinks` through `next.config` as a string plugin spec (works under Turbopack). |
+| Route             | Milestone             | Demonstrates                                                                                                         |
+| ----------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `/`               | —                     | Index, driven by `app/milestones.ts`.                                                                                |
+| `/milestone-1`    | 1 — Loader core       | `compileMdx()` source → `{ code, frontmatter, data }` → live render via `evaluate`.                                  |
+| `/milestone-2`    | 2 — `withSatteri`     | A real `app/milestone-2/page.mdx` rendered through the loader (no `evaluate` shim); GFM + frontmatter strip.         |
+| `/milestone-3`    | 3 — Provider          | `<Counter>` / `<Note>` resolved from root `mdx-components.tsx` with no per-page wiring.                              |
+| `/milestone-4`    | 4 — TOC / frontmatter | `import Content, { frontmatter, toc }` from a `.mdx` module; renders a TOC + frontmatter `<dl>` and Next `metadata`. |
+| `/milestone-5`    | 5 — Plugins           | `externalLinks` satteri plugin applied via `compileMdx`; "why no remark/rehype shim" writeup.                        |
+| `/external-links` | 5 — Plugins           | A real `.mdx` route wiring `externalLinks` through `next.config` as a string plugin spec (works under Turbopack).    |
 
 ## Layout
 

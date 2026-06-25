@@ -3,7 +3,8 @@ import { compileMdx } from '../src/loader.js';
 import { isPluginSpec } from '../src/plugin-spec.js';
 
 const DOC = `[ext](https://example.com) and [int](/local).`;
-const html = (code: string) => (code.match(/__html: "([\s\S]*?)" \}/)?.[1] ?? '').replace(/\\"/g, '"');
+const html = (code: string) =>
+  (code.match(/__html: "([\s\S]*?)" \}/)?.[1] ?? '').replace(/\\"/g, '"');
 
 describe('isPluginSpec', () => {
   it('recognizes string and [string, options] forms only', () => {
@@ -18,8 +19,12 @@ describe('isPluginSpec', () => {
 
 describe('plugin specs through compileMdx', () => {
   it('applies a plugin referenced by a string spec', async () => {
-    const { code } = await compileMdx(DOC, { hastPlugins: ['satteri-nextjs/plugins#externalLinks'] });
-    expect(html(code)).toContain('href="https://example.com" target="_blank" rel="noopener noreferrer"');
+    const { code } = await compileMdx(DOC, {
+      hastPlugins: ['satteri-nextjs/plugins#externalLinks'],
+    });
+    expect(html(code)).toContain(
+      'href="https://example.com" target="_blank" rel="noopener noreferrer"'
+    );
     expect(html(code)).toContain('href="/local">int</a>');
   });
 
@@ -32,7 +37,7 @@ describe('plugin specs through compileMdx', () => {
 
   it('throws a clear error when the named export is missing', async () => {
     await expect(compileMdx(DOC, { hastPlugins: ['satteri-nextjs/plugins#nope'] })).rejects.toThrow(
-      /no export "nope"/,
+      /no export "nope"/
     );
   });
 
