@@ -62,5 +62,5 @@
     "next": ">=14",
     "react": ">=18"
   },
-  "packageManager": "pnpm@11.9.0"
+  "packageManager": "pnpm@11.20.0"
 }
